@@ -2,8 +2,8 @@
  * `npm run loadtest` : 20 fake phones play a full UNO game against a real, separate server process, which is
  * killed and restarted mid-game. Uses a throwaway database, so your party data is never touched.
  *
- *   npm run loadtest                         # 20 players, 10 at the table
- *   npm run loadtest -- --players 20 --seats 10 --score 300 --think 400
+ *   npm run loadtest                         # 20 players, all 20 at the UNO table (two decks)
+ *   npm run loadtest -- --players 20 --seats 10 --score 300 --think 400   # 10 play, 10 spectate
  *   npm run loadtest -- --restart-after none
  *   npm run loadtest -- --url http://192.168.0.10:3000 --admin-password ...   (an already-running server;
  *                                                          adds fake "Load.." players to ITS database!)
@@ -23,7 +23,7 @@ const arg = (name: string, fallback?: string) => {
 };
 
 const players = Number(arg('players', '20'));
-const seats = Number(arg('seats', String(Math.min(10, players))));
+const seats = Number(arg('seats', String(Math.min(20, players))));
 const score = Number(arg('score', '150'));
 const think = Number(arg('think', '0'));
 const restartArg = arg('restart-after', '60');

@@ -16,6 +16,9 @@ describe('card images', () => {
     expect(existsSync(publicDir + CARD_BACK)).toBe(true);
     expect(new Set(buildDeck().map(cardAsset)).size).toBe(54);
   });
+  it('a second deck needs no extra images: the same 54 faces', () => {
+    expect(new Set(buildDeck(2).map(cardAsset)).size).toBe(54);
+  });
   it('names are stable', () => {
     expect(cardAsset({ color: 'red', kind: 'number', value: 5 })).toBe('/cards/red-5.svg');
     expect(cardAsset({ color: 'blue', kind: 'draw2', value: null })).toBe('/cards/blue-draw2.svg');

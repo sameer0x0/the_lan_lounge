@@ -133,7 +133,7 @@ The host loads a bank of dares; each round the server picks a player and a dare 
 
 ## Game 2: UNO
 
-Standard UNO for 2–10 players per table, with house rules available as admin toggles that default to off.
+Standard UNO for 2–20 players per table (one deck up to 10 players, two decks for 11–20), with house rules available as admin toggles that default to off.
 
 **Deck (108 cards)**
 
@@ -222,7 +222,7 @@ Export this doc as Markdown into the repo as `docs/SPEC.md` so Claude Code has t
 ## Open questions
 
 - [ ] Party date, and how many guests to expect?
-- [ ] One UNO table, or several running at once if 15+ people want to play? **v1 runs one table** (up to 10 seated); the code keys the table by its `games` row so several can be added later.
+- [ ] One UNO table, or several running at once if 15+ people want to play? **v1 runs one table** (up to 20 seated); the code keys the table by its `games` row so several can be added later.
 - [x] Optional 4-digit PIN on accounts, or phone number alone? **Decided: optional PIN, built in Phase 3.**
 - [ ] Can someone play Dare or Dare and UNO at the same time, or is it one game at a time for everyone?
 - [ ] Should the TV/projector mode be in v1?

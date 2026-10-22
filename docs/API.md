@@ -60,7 +60,7 @@ On connect, and after every change, admin sockets receive `admin:state` = `{ pla
 | `admin:rename` | `{ playerId, name }` | Same rules as sign-up (1-20 chars, unique ignoring case) |
 | `admin:resetPin` | `{ playerId }` | Removes their PIN and clears any lockout |
 | `admin:broadcast` | `{ text }` | Emits `announce` to everyone (max 200 chars) |
-| `admin:unoCreate` | `{ playerIds, targetScore? }` | Seats 2-10 non-banned players (in that order) and deals. Replaces any open table |
+| `admin:unoCreate` | `{ playerIds, targetScore? }` | Seats 2-20 non-banned players (11+ play with two decks) (in that order) and deals. Replaces any open table |
 | `admin:unoSkip` | (ack only) | Ends the current player's turn (accepts a Draw Four if one is aimed at them) |
 | `admin:unoNextRound` | (ack only) | Deals the next round (only when the round is over and nobody reached the target) |
 | `admin:unoEnd` | (ack only) | Closes the table for everyone (`games.status = 'ended'`) |

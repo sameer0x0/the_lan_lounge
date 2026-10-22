@@ -39,7 +39,7 @@ A website that runs **on your Windows laptop**. Guests join your party Wi-Fi, sc
 ### Games
 | Game | What you get | Status |
 | --- | --- | --- |
-| **UNO** (2-10 per table) | Full rules: 108 cards, draw / play / pass, Skip, Reverse, Draw Two, Wild, Wild Draw Four with **challenge** (bluff: they draw 4; honest: you draw 6) or accept, **UNO!** and **Catch!** (2-card penalty), pile reshuffle, round scoring (numbers face value, actions 20, wilds 50), first to 500 (host can lower it). **Cards are images**; your hand along the bottom with playable cards lifted and glowing, tap the pile to draw, colour ring on the discard pile, Wild colour picker, opponents shown with card backs and counts, "who did what" log line, buzz on your turn, scoreboard between rounds. Hands are private: a phone only ever receives its own cards. Saved after every move, so a server restart resumes mid-hand | Done, tested |
+| **UNO** (2-20 per table) | Full rules: 108 cards (tables of 11-20 shuffle in a second deck so everyone can be dealt 7), draw / play / pass, Skip, Reverse, Draw Two, Wild, Wild Draw Four with **challenge** (bluff: they draw 4; honest: you draw 6) or accept, **UNO!** and **Catch!** (2-card penalty), pile reshuffle, round scoring (numbers face value, actions 20, wilds 50), first to 500 (host can lower it). **Cards are images**; your hand along the bottom with playable cards lifted and glowing, tap the pile to draw, colour ring on the discard pile, Wild colour picker, opponents shown with card backs and counts, "who did what" log line, buzz on your turn, scoreboard between rounds. Hands are private: a phone only ever receives its own cards. Saved after every move, so a server restart resumes mid-hand | Done, tested |
 | **Imposter** (Among Us style) | 3 random imposters among ~20, vote people out, reveal whether each ejected player was an imposter, win conditions, roles private. **Practice mode only** on phones (uses the people online, others' votes simulated). Not yet a live shared game | Engine done and tested; live play **not built** |
 | **Dare or Dare** | Planned in the spec | **Switched off** (shown greyed out) |
 | UNO house rules | Stacking, draw-until-play, 7-0, jump-in | Not built |
@@ -49,7 +49,7 @@ A website that runs **on your Windows laptop**. Guests join your party Wi-Fi, sc
 | --- | --- |
 | Locked down | Needs `ADMIN_PASSWORD` (admin is off until you set it). Only answers the laptop itself; guests get a "not found" page. Wrong passwords are throttled. Requests arriving through a tunnel or proxy count as remote and are refused, even though they arrive from the laptop (tested) |
 | Players tab | Live list with phone numbers, online/away, PIN set, points, last seen. **Rename, Kick** (they can rejoin), **Ban/Unban** for the night, **Reset PIN** |
-| UNO tab | Tick who sits down (2-10), choose the target score, **Deal**. Then **Skip turn** (for someone who wandered off), **Deal next round**, **End table**, and a **God mode** switch that shows every hand as card images |
+| UNO tab | Tick who sits down (2-20), choose the target score, **Deal**. Then **Skip turn** (for someone who wandered off), **Deal next round**, **End table**, and a **God mode** switch that shows every hand as card images |
 | Broadcast tab | Send a banner to every phone, with quick presets |
 | Audit log tab | Every admin action and notable event (joins, logins, wrong PINs, kicks, rejected admin attempts, table events), so "you rigged that!" can be settled |
 | System tab | Guest address, Wi-Fi details, how many are connected |
@@ -170,7 +170,7 @@ Alternatives with the same shape: `ngrok http 3000`, or Tailscale (private netwo
 
 **During:**
 - Guests scan, sign in, appear in the lobby. Press **TV mode** on the TV.
-- **UNO:** `/admin` > UNO > tick the players (2-10) > set "first to" points (a shorter game, such as 100-150, suits a party) > **Deal**. Their phones open the table by themselves. If someone goes missing, **Skip turn**. After a round, **Deal next round**. After game over, **End table**.
+- **UNO:** `/admin` > UNO > tick the players (2-20) > set "first to" points (a shorter game, such as 100-150, suits a party) > **Deal**. Their phones open the table by themselves. If someone goes missing, **Skip turn**. After a round, **Deal next round**. After game over, **End table**.
 - Announcements: Broadcast tab.
 - Trouble with a guest: Players tab > Kick (signs them out) or Ban.
 - Someone forgot their PIN: Players tab > **Reset PIN**.
@@ -200,39 +200,40 @@ Alternatives with the same shape: `ngrok http 3000`, or Tailscale (private netwo
 1. 20 players sign up **at the same moment** (half with a PIN, which is the expensive case).
 2. All 20 sockets connect; every phone must see all 20 online.
 3. The host connects and broadcasts 10 announcements; every phone must receive each.
-4. 10 players are seated at UNO and 10 spectate. Bots play a complete game by the rules (drawing, playing, UNO calls, catching, Draw Four challenges) until someone wins, over several rounds when the target is high.
+4. All 20 are seated at one UNO table (two decks), or, in the second variant, 10 sit and 10 spectate. Bots play a complete game by the rules (drawing, playing, UNO calls, catching, Draw Four challenges) until someone wins, over several rounds when the target is high.
 5. **Mid-game, the server process is killed (SIGKILL) and restarted.** All 20 phones must reconnect, and the table must come back exactly: same turn, same top card, same hands.
 6. Privacy is checked against the server's own state: no phone may receive another player's cards, and spectators must receive no table.
 
 It fails on any refused move that isn't a normal bot race, a stalled game, a mismatch after the restart, or a privacy leak. The same scenario also runs inside `npm test` against an in-process server. I broke the server on purpose (leaking hands; forgetting the table after a restart) and confirmed the test caught both.
 
-**Results** (macOS, Node 20, everything on one machine via loopback):
+**Results** (macOS, Node 20, everything on one machine via loopback), all 20 players seated at one UNO table:
 
-| Run | Players | Moves | Rounds | Outcome |
-| --- | --- | --- | --- | --- |
-| `npm run loadtest` | 20 (10 seated) | 152 | 1 | Pass, restart recovered in 256 ms |
-| `--think 120 --score 250` (human-ish pace) | 20 | 182 | 1 | Pass, recovered in 505 ms |
-| `--think 40 --score 900 --restart-after 200` | 20 | **1,332** | **7** | Pass, recovered in 264 ms |
+| Run | Moves | Rounds | Outcome |
+| --- | --- | --- | --- |
+| `npm run loadtest` | 261 | 1 | Pass, all 20 phones back after the restart in 355 ms |
+| `--think 40 --score 1500 --restart-after 250` | **1,105** | **7** | Pass, recovered in 509 ms |
+
+The "10 play, 10 spectate" variant also passes (inside `npm test`, repeated runs), and earlier standalone runs of it did too (up to 1,332 moves over 7 rounds).
 
 Latency from the long run (milliseconds):
 
 | Measure | p50 | p95 | max |
 | --- | --- | --- | --- |
-| Sign-in, 20 at once (half with PIN) | 152 | 244 | 244 |
+| Sign-in, 20 at once (half with PIN) | 154 | 248 | 248 |
 | Socket connects and gets full state | 16 | 25 | 25 |
 | Announcement reaches all 20 phones | 1 | 1 | 1 |
-| UNO move acknowledged | 9 | 15 | 34 |
-| Move to the next player's phone updating | 5 | 10 | 22 |
+| UNO move acknowledged | 15 | 18 | 23 |
+| Move to the next player's phone updating | 9 | 15 | 34 |
 
-Server memory stayed at about **123 MB**. A UNO update is about **2.6 KB** per seated phone, which is trivial for Wi-Fi.
+Server memory stayed at about **125-140 MB**. A UNO update is about **3.7 KB** per seated phone at a 20-player table, which is trivial for Wi-Fi.
 
 **What this does and doesn't prove**
-- It proves the **server and game logic** handle 20 connected players, a 10-seat game, simultaneous sign-ins and a hard restart. Tens of milliseconds of server time leaves enormous headroom.
+- It proves the **server and game logic** handle 20 connected players at one UNO table, simultaneous sign-ins and a hard restart. Tens of milliseconds of server time leaves enormous headroom.
 - It does **not** test real Wi-Fi. With 20 phones the limit is your router, so use 5 GHz, put it in the middle of the room, and keep the laptop on Ethernet.
-- UNO is capped at 10 seats per table; the other 10 watch the lobby. Imposter isn't part of the test because it isn't live yet.
+- UNO seats up to 20 at one table (one table at a time). A 20-player round is long (about 100-250 moves) and the hands are big, so for a better game consider a lower target score or two tables later. Imposter isn't part of the test because it isn't live yet.
 - Run it on the Windows laptop too (`npm run loadtest`) for a Windows result. It needs nothing else installed.
 
-Options: `npm run loadtest -- --players 20 --seats 10 --score 300 --think 400 --restart-after none`. Pointing it at your real server with `--url` works but adds fake "Load.." players to that database, so avoid that during a real party.
+Options: `npm run loadtest -- --players 20 --seats 20 --score 300 --think 400 --restart-after none` (use `--seats 10` to let the other 10 spectate). Pointing it at your real server with `--url` works but adds fake "Load.." players to that database, so avoid that during a real party.
 
 ---
 
@@ -243,7 +244,7 @@ Options: `npm run loadtest -- --players 20 --seats 10 --score 300 --think 400 --
 | `npm install` | Install everything (needs internet, once) |
 | `npm run party` | Build the website and start the server: the one command for the night |
 | `npm run dev` | Developer mode with live reload |
-| `npm test` | All 124 automated tests (includes the 20-player test) |
+| `npm test` | All 129 automated tests (includes the 20-player test) |
 | `npm run loadtest` | The standalone 20-player load test (section 7) |
 | `npm run typecheck` | Type-check all code |
 | `npm run cards` | Regenerate the UNO card images |

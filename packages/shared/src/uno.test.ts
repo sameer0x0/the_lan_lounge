@@ -6,6 +6,7 @@ import {
   callUno,
   cardPoints,
   catchUno,
+  deckCountFor,
   challengeDrawFour,
   createUnoGame,
   drawCard,
@@ -107,6 +108,13 @@ describe('deck', () => {
       for (const k of ['skip', 'reverse', 'draw2'] as const) expect(count((c) => c.color === color && c.kind === k)).toBe(2);
     }
   });
+  it('a second deck doubles everything with ids still unique', () => {
+    const two = buildDeck(2);
+    expect(two).toHaveLength(216);
+    expect(new Set(two.map((c) => c.id)).size).toBe(216);
+    expect(two.filter((c) => c.kind === 'wild4')).toHaveLength(8);
+    expect(two.filter((c) => c.color === 'red' && c.value === 0)).toHaveLength(2);
+  });
   it('has 4 Wild and 4 Wild Draw Four', () => {
     expect(count((c) => c.kind === 'wild')).toBe(4);
     expect(count((c) => c.kind === 'wild4')).toBe(4);
@@ -123,7 +131,7 @@ describe('deck', () => {
 // ---- setup -----------------------------------------------------------------
 
 describe('createUnoGame', () => {
-  it('deals 7 each, flips one card, and keeps all 108 cards accounted for', () => {
+  it('deals 7 each, flips one card, and keeps every card accounted for', () => {
     for (let seed = 0; seed < 100; seed++) {
       const s = createUnoGame(['a', 'b', 'c', 'd'], {}, seeded(seed));
       for (const p of s.players) expect(p.hand.length).toBeGreaterThanOrEqual(7);
@@ -132,15 +140,34 @@ describe('createUnoGame', () => {
       expect(new Set([...s.drawPile, ...s.discard, ...s.players.flatMap((p) => p.hand)].map((c) => c.id)).size).toBe(108);
     }
   });
+  it('uses one deck up to 10 players and two decks for 11-20, so everyone gets 7 cards', () => {
+    expect([2, 10].map(deckCountFor)).toEqual([1, 1]);
+    expect([11, 15, 20].map(deckCountFor)).toEqual([2, 2, 2]);
+    for (let n = 2; n <= 20; n++) {
+      const s = createUnoGame(Array.from({ length: n }, (_, i) => `p${i}`), {}, seeded(n));
+      const shoe = 108 * deckCountFor(n);
+      expect(totalCards(s)).toBe(shoe);
+      expect(new Set([...s.drawPile, ...s.discard, ...s.players.flatMap((p) => p.hand)].map((c) => c.id)).size).toBe(shoe);
+      for (const p of s.players) expect(p.hand.length).toBeGreaterThanOrEqual(7);
+      expect(s.drawPile.length).toBeGreaterThan(20); // a real draw pile is left even with 20 players
+    }
+  });
+  it('a 20-player table plays on: opening card is never a Wild Draw Four, every phone view builds', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const s = createUnoGame(Array.from({ length: 20 }, (_, i) => `p${i}`), {}, seeded(seed));
+      expect(s.discard[0]!.kind).not.toBe('wild4');
+      expect(unoViewFor(s, 'p19').players).toHaveLength(20);
+    }
+  });
   it('never starts with a Wild Draw Four', () => {
     for (let seed = 0; seed < 500; seed++) expect(createUnoGame(['a', 'b'], {}, seeded(seed)).discard[0]!.kind).not.toBe('wild4');
   });
   it('rejects bad player counts, duplicates and targets', () => {
     throwsUno(() => createUnoGame(['a']));
-    throwsUno(() => createUnoGame(Array.from({ length: 11 }, (_, i) => `p${i}`)));
+    throwsUno(() => createUnoGame(Array.from({ length: 21 }, (_, i) => `p${i}`)), /2-20 players/);
     throwsUno(() => createUnoGame(['a', 'a']));
     throwsUno(() => createUnoGame(['a', 'b'], { targetScore: 0 }));
-    expect(createUnoGame(Array.from({ length: 10 }, (_, i) => `p${i}`)).players).toHaveLength(10);
+    expect(createUnoGame(Array.from({ length: 20 }, (_, i) => `p${i}`)).players).toHaveLength(20);
   });
   it('defaults the target to 500 and lets the host lower it', () => {
     expect(createUnoGame(['a', 'b']).settings.targetScore).toBe(500);
@@ -576,7 +603,7 @@ describe('random bot games', () => {
     const pick = <T,>(xs: T[]) => xs[Math.floor(rng() * xs.length)]!;
     let s = createUnoGame(Array.from({ length: n }, (_, i) => `p${i}`), { targetScore: 60 }, rng);
     for (let guard = 0; guard < 20000; guard++) {
-      expect(totalCards(s)).toBe(108);
+      expect(totalCards(s)).toBe(108 * deckCountFor(n));
       if (s.phase === 'gameOver') return s;
       if (s.phase === 'roundOver') {
         s = nextUnoRound(s, rng);
@@ -604,9 +631,9 @@ describe('random bot games', () => {
     throw new Error(`game ${seed} (${n} players) did not finish`);
   }
 
-  it('finishes with a winner, never losing or duplicating a card, for 2-10 players', () => {
-    for (let seed = 1; seed <= 40; seed++) {
-      const n = 2 + (seed % 9);
+  it('finishes with a winner, never losing or duplicating a card, for 2-20 players', () => {
+    for (let seed = 1; seed <= 57; seed++) {
+      const n = 2 + (seed % 19);
       const end = simulate(seed, n);
       expect(end.gameWinnerId).not.toBeNull();
       expect(end.players.find((p) => p.id === end.gameWinnerId)!.score).toBeGreaterThanOrEqual(60);

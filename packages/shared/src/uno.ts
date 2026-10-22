@@ -14,7 +14,7 @@ export type UnoColor = 'red' | 'yellow' | 'green' | 'blue';
 export type CardKind = 'number' | 'skip' | 'reverse' | 'draw2' | 'wild' | 'wild4';
 
 export interface UnoCard {
-  /** Unique within a game (0-107), so the client can say exactly which card it plays. */
+  /** Unique within a game (0-107 with one deck, 0-215 with two), so the client can say exactly which card it plays. */
   id: number;
   /** Wild cards are always 'wild' here; the colour a player picks lives in `UnoState.activeColor`. */
   color: UnoColor | 'wild';
@@ -25,7 +25,7 @@ export interface UnoCard {
 
 export const UNO_COLORS: readonly UnoColor[] = ['red', 'yellow', 'green', 'blue'];
 export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 10;
+export const MAX_PLAYERS = 20;
 export const HAND_SIZE = 7;
 export const DEFAULT_TARGET_SCORE = 500;
 
@@ -36,22 +36,33 @@ const fail = (msg: string): never => {
 
 // ---- deck ------------------------------------------------------------------
 
-/** The standard 108 cards: per colour one 0, two each of 1-9, Skip, Reverse, Draw Two; plus 4 Wild, 4 Wild Draw Four. */
-export function buildDeck(): UnoCard[] {
+export const CARDS_PER_DECK = 108;
+/** One deck deals up to 10 players. Bigger tables shuffle in a second deck (the usual rule for large groups). */
+export const MAX_PLAYERS_ONE_DECK = 10;
+export const deckCountFor = (playerCount: number) => (playerCount <= MAX_PLAYERS_ONE_DECK ? 1 : 2);
+
+/**
+ * The standard 108 cards: per colour one 0, two each of 1-9, Skip, Reverse, Draw Two; plus 4 Wild, 4 Wild Draw Four.
+ * `decks` > 1 repeats the set. Ids stay unique across the whole shoe (0-107, then 108-215...), while identical
+ * faces share one image file.
+ */
+export function buildDeck(decks = 1): UnoCard[] {
   const cards: UnoCard[] = [];
   let id = 0;
   const add = (color: UnoCard['color'], kind: CardKind, value: number | null, copies: number) => {
     for (let i = 0; i < copies; i++) cards.push({ id: id++, color, kind, value });
   };
-  for (const color of UNO_COLORS) {
-    add(color, 'number', 0, 1);
-    for (let v = 1; v <= 9; v++) add(color, 'number', v, 2);
-    add(color, 'skip', null, 2);
-    add(color, 'reverse', null, 2);
-    add(color, 'draw2', null, 2);
+  for (let d = 0; d < decks; d++) {
+    for (const color of UNO_COLORS) {
+      add(color, 'number', 0, 1);
+      for (let v = 1; v <= 9; v++) add(color, 'number', v, 2);
+      add(color, 'skip', null, 2);
+      add(color, 'reverse', null, 2);
+      add(color, 'draw2', null, 2);
+    }
+    add('wild', 'wild', null, 4);
+    add('wild', 'wild4', null, 4);
   }
-  add('wild', 'wild', null, 4);
-  add('wild', 'wild4', null, 4);
   return cards;
 }
 
@@ -154,7 +165,7 @@ const refreshUnoFlag = (p: UnoPlayerState) => {
 
 // ---- setup -----------------------------------------------------------------
 
-/** Starts a game: shuffles, deals 7 each and flips the opening card. Player order = seating order. */
+/** Starts a game: shuffles, deals 7 each and flips the opening card. Player order = seating order. 11-20 players play with two decks. */
 export function createUnoGame(
   playerIds: readonly string[],
   settings: Partial<UnoSettings> = {},
@@ -206,7 +217,7 @@ function startRound(s: UnoState, rng: Rng) {
     p.calledUno = false;
   }
 
-  s.drawPile = shuffle(buildDeck(), rng);
+  s.drawPile = shuffle(buildDeck(deckCountFor(n)), rng);
   for (let i = 0; i < HAND_SIZE; i++) for (const p of s.players) p.hand.push(s.drawPile.pop()!);
 
   // A Wild Draw Four can't open the game: shuffle it back in and flip again.

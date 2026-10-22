@@ -44,7 +44,7 @@ export function Tv({ state }: { state: AdminState | null }) {
               <p className="text-3xl font-extrabold">
                 {game.phase === 'roundOver' ? `${nameOf(game.roundWinnerId ?? '')} won the round` : game.phase === 'gameOver' ? `${nameOf(game.gameWinnerId ?? '')} wins!` : `${nameOf(game.players[game.current]!.id)}'s turn`}
               </p>
-              <ul className="text-xl text-zinc-300">
+              <ul className={`${game.players.length > 10 ? "text-base" : "text-xl"} text-zinc-300`}>
                 {game.players.map((p) => <li key={p.id}>{nameOf(p.id)}: {p.hand.length} cards · {p.score} pts</li>)}
               </ul>
               {game.log.length > 0 && <p className="text-lg text-zinc-500">{describeEvent(game.log[game.log.length - 1]!, nameOf)}</p>}

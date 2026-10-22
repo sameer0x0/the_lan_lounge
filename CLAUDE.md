@@ -25,7 +25,7 @@ A LAN-only web app served from the host's laptop (Windows, "the Legion") at a fi
 - `npm run party`: builds the web app and starts the server on `0.0.0.0:3000` (`PORT` env to change). This is the one command used on the night. Admin stays disabled until `ADMIN_PASSWORD` is set in `.env` (copy `.env.example`).
 - `npm run dev`: server with `tsx watch` plus the Vite dev server (proxies `/api` and `/socket.io` to port 3000).
 - `npm run typecheck`: `tsc` in every workspace.
-- `npm run loadtest`: 20 simulated phones play UNO against an isolated real server that is killed and restarted mid-game (flags: `--players --seats --score --think --restart-after --url`). The same scenario runs in `npm test` (`apps/server/src/loadtest/`). Keep it passing when changing sockets, UNO, persistence or presence.
+- `npm run loadtest`: 20 simulated phones play UNO against an isolated real server that is killed and restarted mid-game (all 20 seated by default; flags: `--players --seats --score --think --restart-after --url`). The same scenario runs in `npm test` (`apps/server/src/loadtest/`). Keep it passing when changing sockets, UNO, persistence or presence.
 - `npm run cards`: regenerate the UNO card images in `apps/web/public/cards/` (deterministic; outputs are committed).
 - `npm run db:generate -w @party/server`: after editing `apps/server/src/db/schema.ts`, generate a migration into `apps/server/drizzle/`. Migrations are applied automatically at server start.
 - The SQLite file is `data/party.sqlite` (gitignored; override with `DB_PATH`). Copy `.env.example` to `.env` for config.
@@ -51,7 +51,7 @@ Events use `domain:action`: `uno:*`, `dare:*`, `lobby:update`, `announce`, `admi
 
 ## UNO engine notes
 Engine: `packages/shared/src/uno.ts` (pure, immutable, 57 tests). Actions return a new state or throw `UnoError` (message is safe to show the player). Phones only get `unoViewFor(state, playerId)`; never send `UnoState`. The full list of rule decisions (Draw Four challenge semantics, UNO/Catch window, opening-card effects, winning on a Draw Two/Four) is in `docs/PROGRESS.md` under Phase 5. Keep it in sync if a rule changes.
-- Default game target is 500 (host can lower it). House rules (stacking, draw-until-play, 7-0, jump-in) are NOT implemented yet.
+- Tables hold 2-20 players: one deck up to 10, two decks for 11-20 (`deckCountFor`); card ids are unique across the shoe. Default game target is 500 (host can lower it). House rules (stacking, draw-until-play, 7-0, jump-in) are NOT implemented yet.
 - A disconnected player's turn is auto-skipped after a host-set timeout (default 45 s): call `skipTurn` from the server's timer; the engine has no timers.
 - Add a test for every rule change; the bot-simulation test in `uno.test.ts` catches lost or duplicated cards.
 
