@@ -1,0 +1,26 @@
+{
+  "name": "party-night",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @party/server\" \"npm run dev -w @party/web\"",
+    "build": "npm run build -w @party/web",
+    "party": "npm run build && npm run start -w @party/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "cards": "tsx scripts/generate-cards.ts",
+    "loadtest": "tsx scripts/load-test.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0"
+  }
+}
